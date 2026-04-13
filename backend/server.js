@@ -5,8 +5,16 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
-// Connect to MongoDB
-connectDB();
+// Serverless-friendly Database Connection Middleware
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        console.error('Database connection failed:', err);
+        res.status(503).json({ error: 'Database service unavailable' });
+    }
+});
 
 const { errorHandler } = require('./middleware/errorHandler');
 
