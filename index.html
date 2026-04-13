@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Özel RoboTekno Koleji - Billboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Main Container (Scales for 1080p) -->
+    <div id="full-screen-container">
+        <div class="dashboard-wrapper">
+
+            <!-- Header Section -->
+            <header class="main-header">
+                <div class="logo-area glass">
+                    <span class="logo-accent">ÖZEL ROBOTEKNO KOLEJİ</span>
+                </div>
+                <div class="time-area glass">
+                    <h1 id="clock">00:00:00</h1>
+                    <p id="date">Fevkalade Bir Gün</p>
+                </div>
+                <div class="auth-box glass" id="header-auth-box">
+                    <button id="login-trigger" class="login-btn">Giriş Yap</button>
+                    <button id="panel-trigger" class="login-btn hidden">Yönetim Paneli</button>
+                </div>
+            </header>
+
+            <!-- Middle Section: Main Grid -->
+            <main class="main-grid">
+                <!-- Panel 1: Announcements -->
+                <section class="announcements-panel glass">
+                    <header class="panel-header">
+                        <h2>DUYURULAR</h2>
+                    </header>
+                    <div id="announcements-container" class="announcements-scroll">
+                        <!-- Dynamic Content -->
+                    </div>
+                </section>
+
+                <!-- Panel 2: CENTRAL MEDIA -->
+                <section class="media-panel glass">
+                    <div id="bg-media-container" class="bg-media-container">
+                        <!-- Dynamic Images/Video Here -->
+                    </div>
+                </section>
+
+                <!-- Panel 3: Menu List -->
+                <section class="menu-panel glass">
+                    <header class="panel-header">
+                        <h2>GÜNÜN MENÜSÜ</h2>
+                    </header>
+                    <div id="menu-container" class="menu-list">
+                        <!-- Dynamic Content -->
+                    </div>
+                </section>
+            </main>
+
+            <!-- Footer Bar -->
+            <footer class="bottom-bar glass">
+                <div class="marquee-container">
+                    <div class="marquee-content">
+                        <span>Eğitimde Teknoloji ve Gelecek RoboTekno ile Sizlerle!</span>
+                        <span>•</span>
+                        <span>Hoş Geldiniz Değerli Misafirlerimiz</span>
+                        <span>•</span>
+                        <span>Başarı Bir Yolculuktur, Bir Varış Noktası Değildir</span>
+                    </div>
+                </div>
+                <div class="status-box">
+                    <div class="status-dot green"></div>
+                    <span>Sistem Çevrimiçi</span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modals (Hidden by default) -->
+    <div id="auth-modal" class="modal-overlay hidden">
+        <div class="modal-content glass">
+            <h2>Yönetici Girişi</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="E-posta" required>
+                <input type="password" id="login-password" placeholder="Şifre" required>
+                <div class="modal-actions">
+                    <button type="button" id="close-auth" class="btn-cancel">İptal</button>
+                    <button type="submit" class="btn-primary">Giriş Yap</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="modal-overlay hidden">
+        <div class="admin-panel-content glass">
+            <div class="admin-header">
+                <h2>Cihaz Yönetim Paneli</h2>
+                <div style="display:flex; gap:10px;">
+                    <button id="logout-btn" class="btn-cancel">Çıkış Yap</button>
+                    <button id="close-admin" class="btn-primary">Paneli Kapat</button>
+                </div>
+            </div>
+
+            <div class="admin-grid">
+                <!-- Duyuru Yönetimi -->
+                <div class="admin-section">
+                    <h3>Duyuru Yönetimi</h3>
+                    <input type="text" id="ann-title" placeholder="Duyuru Başlığı">
+                    <textarea id="ann-content" placeholder="Duyuru İçeriği" rows="3"></textarea>
+                    <button id="add-ann-btn" class="btn-primary" style="width:100%">Duyuru Ekle</button>
+                    <div id="admin-ann-list" class="admin-item-list"></div>
+                </div>
+
+                <!-- Menü Yönetimi -->
+                <div class="admin-section">
+                    <h3>Yemek Menüsü Yönetimi</h3>
+                    <div id="admin-menu-list" class="admin-item-list"></div>
+                    <button id="save-menu-btn" class="btn-primary" style="width:100%; margin-top:20px;">Menüyü
+                        Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+
+</html>

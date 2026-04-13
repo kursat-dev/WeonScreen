@@ -1,0 +1,23 @@
+'use strict';
+
+require('dotenv').config();
+const mongoose = require('mongoose');
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+    console.error('❌  MONGODB_URI is not defined in .env');
+    process.exit(1);
+}
+
+const connectDB = async () => {
+    try {
+        await mongoose.connect(MONGODB_URI);
+        console.log('✅  MongoDB connected successfully');
+    } catch (err) {
+        console.error('❌  MongoDB connection error:', err.message);
+        process.exit(1);
+    }
+};
+
+module.exports = connectDB;
