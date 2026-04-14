@@ -38,14 +38,14 @@ const events = {
     create: [
         body('title').trim().notEmpty().withMessage('Title is required').isLength({ max: 255 }),
         body('description').optional().trim(),
-        body('media_url').optional({ nullable: true }).isURL().withMessage('media_url must be a valid URL'),
+        body('media_url').optional({ nullable: true }).notEmpty().withMessage('media_url cannot be empty if provided'),
         body('media_type').optional().isIn(['image', 'video']).withMessage('media_type must be image or video'),
         body('is_active').optional().isBoolean(),
     ],
     update: [
         body('title').optional().trim().notEmpty().isLength({ max: 255 }),
         body('description').optional().trim(),
-        body('media_url').optional({ nullable: true }).isURL().withMessage('media_url must be a valid URL'),
+        body('media_url').optional({ nullable: true }).notEmpty().withMessage('media_url cannot be empty if provided'),
         body('media_type').optional().isIn(['image', 'video']).withMessage('media_type must be image or video'),
         body('is_active').optional().isBoolean(),
     ],

@@ -17,6 +17,7 @@ let state = {
     announcements: [],
     menu: [],       // Array of { name, item } for weekly display
     ticker: [],     // Array of { message }
+    events: [],     // Background media
     isLoggedIn: false
 };
 
@@ -44,7 +45,14 @@ const annContentInput = document.getElementById('ann-content');
 const addAnnBtn = document.getElementById('add-ann-btn');
 const adminAnnList = document.getElementById('admin-ann-list');
 const adminMenuList = document.getElementById('admin-menu-list');
+const adminMediaList = document.getElementById('admin-media-list');
 const saveMenuBtn = document.getElementById('save-menu-btn');
+
+// Media Inputs
+const mediaTitleInput = document.getElementById('media-title');
+const mediaUrlInput = document.getElementById('media-url');
+const mediaTypeSelect = document.getElementById('media-type');
+const addMediaBtn = document.getElementById('add-media-btn');
 
 // --- API HELPERS ---
 
@@ -114,6 +122,21 @@ async function loadDisplayData() {
         updateTickerDisplay();
     } catch (e) {
         console.warn('Could not load ticker:', e.message);
+    }
+
+    try {
+        // Events (Background Media)
+        const events = await apiFetch('/events/active');
+        const oldEventsStr = JSON.stringify(state.events);
+        state.events = events.map(e => ({ id: e.id, title: e.title, url: e.media_url, type: e.media_type }));
+        
+        // Only re-init if media changed to avoid flickering
+        if (JSON.stringify(state.events) !== oldEventsStr) {
+            CONFIG.defaultBgs = state.events.map(e => ({ type: e.type, url: e.url }));
+            initBackgrounds();
+        }
+    } catch (e) {
+        console.warn('Could not load events:', e.message);
     }
 
     renderAll();
@@ -275,6 +298,16 @@ function renderAdminLists() {
     </div>
   `).join('');
 
+    adminMediaList.innerHTML = state.events.map(ev => `
+    <div class="admin-item">
+      <div class="info">
+        <h4>${ev.title} (${ev.type})</h4>
+        <small style="opacity: 0.6; word-break: break-all;">${ev.url}</small>
+      </div>
+      <button class="btn-danger delete-media-btn" data-id="${ev.id}">Sil</button>
+    </div>
+  `).join('');
+
     document.querySelectorAll('.delete-ann-btn').forEach(btn => {
         btn.onclick = async (e) => {
             const id = e.currentTarget.dataset.id;
@@ -284,6 +317,19 @@ function renderAdminLists() {
                 renderAll();
             } catch (err) {
                 alert('Duyuru silinemedi: ' + err.message);
+            }
+        };
+    });
+
+    document.querySelectorAll('.delete-media-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (!confirm('Bu medyayı silmek istediğinize emin misiniz?')) return;
+            try {
+                await apiFetch(`/events/${id}`, { method: 'DELETE' });
+                await loadDisplayData();
+            } catch (err) {
+                alert('Medya silinemedi: ' + err.message);
             }
         };
     });
@@ -401,6 +447,25 @@ function setupEventListeners() {
             alert('Menü Kaydedildi!');
         } catch (err) {
             alert('Menü kaydedilemedi: ' + err.message);
+        }
+    };
+
+    addMediaBtn.onclick = async () => {
+        const title = mediaTitleInput.value.trim();
+        const url = mediaUrlInput.value.trim();
+        const type = mediaTypeSelect.value;
+        if (!title || !url) return;
+
+        try {
+            await apiFetch('/events', {
+                method: 'POST',
+                body: JSON.stringify({ title, media_url: url, media_type: type, is_active: true }),
+            });
+            mediaTitleInput.value = '';
+            mediaUrlInput.value = '';
+            await loadDisplayData();
+        } catch (err) {
+            alert('Medya eklenemedi: ' + err.message);
         }
     };
 

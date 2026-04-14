@@ -122,6 +122,21 @@
                     <button id="save-menu-btn" class="btn-primary" style="width:100%; margin-top:20px;">Menüyü
                         Kaydet</button>
                 </div>
+
+                <!-- Medya Yönetimi (Backgrounds) -->
+                <div class="admin-section">
+                    <h3>Arka Plan Medya Yönetimi</h3>
+                    <div class="admin-form-group">
+                        <input type="text" id="media-title" placeholder="Medya Başlığı">
+                        <input type="text" id="media-url" placeholder="Medya URL (örn: /Backgrounds/video.mp4)">
+                        <select id="media-type">
+                            <option value="video">Video</option>
+                            <option value="image">Resim</option>
+                        </select>
+                        <button id="add-media-btn" class="btn-primary" style="width:100%">Medya Ekle</button>
+                    </div>
+                    <div id="admin-media-list" class="admin-item-list"></div>
+                </div>
             </div>
         </div>
     </div>
