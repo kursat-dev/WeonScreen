@@ -16,7 +16,7 @@ let authToken = null;
 let state = {
     announcements: [],
     menu: [],       // Array of { name, item } for weekly display
-    ticker: [],     // Array of { message }
+    ticker: [],     // Array of { id, message }
     events: [],     // Background media
     isLoggedIn: false
 };
@@ -53,6 +53,10 @@ const mediaTitleInput = document.getElementById('media-title');
 const mediaUrlInput = document.getElementById('media-url');
 const mediaTypeSelect = document.getElementById('media-type');
 const addMediaBtn = document.getElementById('add-media-btn');
+
+const tickerMessageInput = document.getElementById('ticker-message');
+const addTickerBtn = document.getElementById('add-ticker-btn');
+const adminTickerList = document.getElementById('admin-ticker-list');
 
 // --- API HELPERS ---
 
@@ -118,7 +122,7 @@ async function loadDisplayData() {
     try {
         // Ticker messages
         const tickers = await apiFetch('/ticker/active');
-        state.ticker = tickers.map(t => t.message);
+        state.ticker = tickers.map(t => ({ id: t.id, message: t.message }));
         updateTickerDisplay();
     } catch (e) {
         console.warn('Could not load ticker:', e.message);
@@ -273,7 +277,7 @@ function updateTickerDisplay() {
     const marquee = document.querySelector('.marquee-content');
     if (!marquee || state.ticker.length === 0) return;
     marquee.innerHTML = state.ticker
-        .map(msg => `<span>${msg}</span><span>•</span>`)
+        .map(t => `<span>${t.message}</span><span>•</span>`)
         .join('');
 }
 
@@ -335,6 +339,15 @@ function renderAdminLists() {
     </div>
   `).join('');
 
+    adminTickerList.innerHTML = state.ticker.map(t => `
+    <div class="admin-item">
+      <div class="info">
+        <p>${t.message}</p>
+      </div>
+      <button class="btn-danger delete-ticker-btn" data-id="${t.id}">Sil</button>
+    </div>
+  `).join('');
+
     document.querySelectorAll('.delete-ann-btn').forEach(btn => {
         btn.onclick = async (e) => {
             const id = e.currentTarget.dataset.id;
@@ -357,6 +370,19 @@ function renderAdminLists() {
                 await loadDisplayData();
             } catch (err) {
                 alert('Medya silinemedi: ' + err.message);
+            }
+        };
+    });
+
+    document.querySelectorAll('.delete-ticker-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+            try {
+                await apiFetch(`/ticker/${id}`, { method: 'DELETE' });
+                await loadDisplayData();
+            } catch (err) {
+                alert('Mesaj silinemedi: ' + err.message);
             }
         };
     });
@@ -493,6 +519,22 @@ function setupEventListeners() {
             await loadDisplayData();
         } catch (err) {
             alert('Medya eklenemedi: ' + err.message);
+        }
+    };
+
+    addTickerBtn.onclick = async () => {
+        const message = tickerMessageInput.value.trim();
+        if (!message) return;
+
+        try {
+            await apiFetch('/ticker', {
+                method: 'POST',
+                body: JSON.stringify({ message, is_active: true }),
+            });
+            tickerMessageInput.value = '';
+            await loadDisplayData();
+        } catch (err) {
+            alert('Mesaj eklenemedi: ' + err.message);
         }
     };
 
