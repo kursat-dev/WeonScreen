@@ -103,17 +103,34 @@ async function loadDisplayData() {
     try {
         // Weekly menu (Mon–Fri)
         const weekMenu = await apiFetch('/menu/week');
-        const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
-        state.menu = weekMenu.map(row => {
-            // Use UTC to avoid timezone shifts (Monday 00:00 appearing as Sunday 23:00)
+        const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+        
+        // 1. Get this week's Monday (local/display relative)
+        const now = new Date();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        monday.setHours(0,0,0,0);
+
+        // 2. Map existing data to a date string key "YYYY-MM-DD"
+        const menuMap = {};
+        weekMenu.forEach(row => {
             const d = new Date(row.date);
-            const dayIndex = d.getUTCDay(); // 0=Sun (UTC)
-            const adjustedIndex = (dayIndex + 6) % 7;    // 0=Mon
+            const iso = d.toISOString().split('T')[0];
+            menuMap[iso] = row;
+        });
+
+        // 3. Build fixed 5-day structure
+        state.menu = days.map((dayName, i) => {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const iso = d.toISOString().split('T')[0];
+            const row = menuMap[iso];
+
             return {
-                id: row.id,
-                date: row.date,
-                name: days[adjustedIndex] || row.date,
-                item: [row.soup, row.main_course, row.side_dish, row.dessert].filter(Boolean).join(', ')
+                id: row ? row.id : null,
+                date: iso,
+                name: dayName,
+                item: row ? [row.soup, row.main_course, row.side_dish, row.dessert].filter(Boolean).join(', ') : 'Menü Belirtilmedi'
             };
         });
     } catch (e) {

@@ -23,16 +23,19 @@ async function getToday(req, res, next) {
 async function getWeek(req, res, next) {
     try {
         const today = new Date();
-        // Get current Monday (UTC)
-        const monday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-        monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
-        monday.setUTCHours(0, 0, 0, 0);
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        monday.setHours(0, 0, 0, 0);
 
-        const nextMonday = new Date(monday);
-        nextMonday.setUTCDate(monday.getUTCDate() + 7);
+        // Broaden search by 1 day on each side just in case of TZ shifts in the DB
+        const searchStart = new Date(monday);
+        searchStart.setDate(monday.getDate() - 1);
+        
+        const searchEnd = new Date(monday);
+        searchEnd.setDate(monday.getDate() + 8);
 
         const rows = await Menu.find({
-            date: { $gte: monday, $lt: nextMonday }
+            date: { $gte: searchStart, $lt: searchEnd }
         }).sort({ date: 1 });
         res.json(rows);
     } catch (err) {
