@@ -181,20 +181,8 @@ function getYoutubeEmbedUrl(url) {
 }
 
 function handleScaling() {
-    const ww = window.innerWidth;
-    const wh = window.innerHeight;
-    const targetRatio = CONFIG.baseWidth / CONFIG.baseHeight;
-    const windowRatio = ww / wh;
-
-    let scale = 1;
-
-    if (windowRatio > targetRatio) {
-        scale = wh / CONFIG.baseHeight;
-    } else {
-        scale = ww / CONFIG.baseWidth;
-    }
-
-    container.style.transform = `scale(${scale})`;
+    // Layout is now fluid via CSS (100vw/100vh)
+    // No JS scaling needed unless we want to maintain a specific internal ratio
 }
 
 function handleFullscreenUI() {
