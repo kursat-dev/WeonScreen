@@ -105,7 +105,9 @@ async function loadDisplayData() {
         const weekMenu = await apiFetch('/menu/week');
         const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
         state.menu = weekMenu.map(row => {
-            const dayIndex = new Date(row.date).getDay(); // 0=Sun
+            // Use UTC to avoid timezone shifts (Monday 00:00 appearing as Sunday 23:00)
+            const d = new Date(row.date);
+            const dayIndex = d.getUTCDay(); // 0=Sun (UTC)
             const adjustedIndex = (dayIndex + 6) % 7;    // 0=Mon
             return {
                 id: row.id,

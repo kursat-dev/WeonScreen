@@ -23,12 +23,13 @@ async function getToday(req, res, next) {
 async function getWeek(req, res, next) {
     try {
         const today = new Date();
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-        monday.setHours(0, 0, 0, 0);
+        // Get current Monday (UTC)
+        const monday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+        monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+        monday.setUTCHours(0, 0, 0, 0);
 
         const nextMonday = new Date(monday);
-        nextMonday.setDate(monday.getDate() + 7);
+        nextMonday.setUTCDate(monday.getUTCDate() + 7);
 
         const rows = await Menu.find({
             date: { $gte: monday, $lt: nextMonday }
