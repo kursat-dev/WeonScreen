@@ -609,11 +609,15 @@ function setupEventListeners() {
         }
     };
 
-    // Global click for fullscreen
+    // Global click for fullscreen and unmuted video play
     document.addEventListener('click', (e) => {
         // Ignore if logged in or clicking inside a modal or admin panel
         if (state.isLoggedIn) return;
         if (e.target.closest('.modal-overlay') || e.target.closest('.admin-panel-content') || e.target.closest('.auth-box')) return;
+
+        // Try to play any video in the media container (if unmuted autoplay was blocked)
+        const activeVideos = mediaContainer.querySelectorAll('video');
+        activeVideos.forEach(v => v.play().catch(err => console.warn("Video play failed:", err)));
 
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(() => { });
