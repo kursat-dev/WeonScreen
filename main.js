@@ -16,8 +16,9 @@ let authToken = null;
 let state = {
     announcements: [],
     menu: [],       // Array of { name, item } for weekly display
-    ticker: [],     // Array of { message }
+    ticker: [],     // Array of { id, message }
     events: [],     // Background media
+    birthday: [],   // Array of { id, title, content }
     isLoggedIn: false
 };
 
@@ -28,6 +29,7 @@ const dateEl = document.getElementById('date');
 const annContainer = document.getElementById('announcements-container');
 const menuContainer = document.getElementById('menu-container');
 const mediaContainer = document.getElementById('bg-media-container');
+const birthdayContainer = document.getElementById('birthday-container');
 
 const headerAuthBox = document.getElementById('header-auth-box');
 const loginTrigger = document.getElementById('login-trigger');
@@ -53,6 +55,16 @@ const mediaTitleInput = document.getElementById('media-title');
 const mediaUrlInput = document.getElementById('media-url');
 const mediaTypeSelect = document.getElementById('media-type');
 const addMediaBtn = document.getElementById('add-media-btn');
+
+const tickerMessageInput = document.getElementById('ticker-message');
+const addTickerBtn = document.getElementById('add-ticker-btn');
+const adminTickerList = document.getElementById('admin-ticker-list');
+
+// Birthday Admin Elements
+const birthdayTitleInput = document.getElementById('birthday-title');
+const birthdayContentInput = document.getElementById('birthday-content');
+const addBirthdayBtn = document.getElementById('add-birthday-btn');
+const adminBirthdayList = document.getElementById('admin-birthday-list');
 
 // --- API HELPERS ---
 
@@ -99,15 +111,34 @@ async function loadDisplayData() {
     try {
         // Weekly menu (Mon–Fri)
         const weekMenu = await apiFetch('/menu/week');
-        const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
-        state.menu = weekMenu.map(row => {
-            const dayIndex = new Date(row.date).getDay(); // 0=Sun
-            const adjustedIndex = (dayIndex + 6) % 7;    // 0=Mon
+        const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+        
+        // 1. Get this week's Monday (local/display relative)
+        const now = new Date();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        monday.setHours(0,0,0,0);
+
+        // 2. Map existing data to a date string key "YYYY-MM-DD"
+        const menuMap = {};
+        weekMenu.forEach(row => {
+            const d = new Date(row.date);
+            const iso = d.toISOString().split('T')[0];
+            menuMap[iso] = row;
+        });
+
+        // 3. Build fixed 5-day structure
+        state.menu = days.map((dayName, i) => {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const iso = d.toISOString().split('T')[0];
+            const row = menuMap[iso];
+
             return {
-                id: row.id,
-                date: row.date,
-                name: days[adjustedIndex] || row.date,
-                item: [row.soup, row.main_course, row.side_dish, row.dessert].filter(Boolean).join(', ')
+                id: row ? row.id : null,
+                date: iso,
+                name: dayName,
+                item: row ? [row.soup, row.main_course, row.side_dish, row.dessert].filter(Boolean).join(', ') : 'Menü Belirtilmedi'
             };
         });
     } catch (e) {
@@ -118,7 +149,7 @@ async function loadDisplayData() {
     try {
         // Ticker messages
         const tickers = await apiFetch('/ticker/active');
-        state.ticker = tickers.map(t => t.message);
+        state.ticker = tickers.map(t => ({ id: t.id, message: t.message }));
         updateTickerDisplay();
     } catch (e) {
         console.warn('Could not load ticker:', e.message);
@@ -137,6 +168,14 @@ async function loadDisplayData() {
         }
     } catch (e) {
         console.warn('Could not load events:', e.message);
+    }
+
+    try {
+        // Birthday entries
+        const birthdays = await apiFetch('/birthday/active');
+        state.birthday = birthdays.map(b => ({ id: b.id, title: b.title, content: b.content }));
+    } catch (e) {
+        console.warn('Could not load birthdays:', e.message);
     }
 
     renderAll();
@@ -171,26 +210,14 @@ function getYoutubeEmbedUrl(url) {
     const match = url.match(regExp);
     if (match && match[2].length === 11) {
         const videoId = match[2];
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`;
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&enablejsapi=1`;
     }
     return null;
 }
 
 function handleScaling() {
-    const ww = window.innerWidth;
-    const wh = window.innerHeight;
-    const targetRatio = CONFIG.baseWidth / CONFIG.baseHeight;
-    const windowRatio = ww / wh;
-
-    let scale = 1;
-
-    if (windowRatio > targetRatio) {
-        scale = wh / CONFIG.baseHeight;
-    } else {
-        scale = ww / CONFIG.baseWidth;
-    }
-
-    container.style.transform = `scale(${scale})`;
+    // Layout is now fluid via CSS (100vw/100vh)
+    // No JS scaling needed unless we want to maintain a specific internal ratio
 }
 
 function handleFullscreenUI() {
@@ -228,7 +255,7 @@ function initBackgrounds() {
             const iframe = document.createElement('iframe');
             iframe.src = ytUrl;
             iframe.className = 'bg-video active';
-            iframe.allow = 'autoplay; encrypted-media';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
             iframe.frameBorder = '0';
             iframe.style.pointerEvents = 'none'; // Prevent interaction
             mediaContainer.appendChild(iframe);
@@ -237,7 +264,7 @@ function initBackgrounds() {
             const video = document.createElement('video');
             video.src = videoFile.url;
             video.autoplay = true;
-            video.muted = true;
+            video.muted = false;
             video.loop = true;
             video.playsInline = true;
             video.className = 'bg-video active';
@@ -273,7 +300,7 @@ function updateTickerDisplay() {
     const marquee = document.querySelector('.marquee-content');
     if (!marquee || state.ticker.length === 0) return;
     marquee.innerHTML = state.ticker
-        .map(msg => `<span>${msg}</span><span>•</span>`)
+        .map(t => `<span>${t.message}</span><span>•</span>`)
         .join('');
 }
 
@@ -294,7 +321,15 @@ function renderAll() {
     </div>
   `).join('');
 
-    // 3. Admin UI Sync
+    // 3. Birthday
+    birthdayContainer.innerHTML = state.birthday.map((b, index) => `
+    <div class="birthday-card" style="animation: slideIn 0.8s ease forwards; animation-delay: ${index * 0.1}s">
+      <h4>${b.title}</h4>
+      <p>${b.content}</p>
+    </div>
+  `).join('');
+
+    // 4. Admin UI Sync
     if (state.isLoggedIn) {
         document.body.classList.add('admin-mode');
         loginTrigger.classList.add('hidden');
@@ -335,6 +370,24 @@ function renderAdminLists() {
     </div>
   `).join('');
 
+    adminTickerList.innerHTML = state.ticker.map(t => `
+    <div class="admin-item">
+      <div class="info">
+        <p>${t.message}</p>
+      </div>
+      <button class="btn-danger delete-ticker-btn" data-id="${t.id}">Sil</button>
+    </div>
+  `).join('');
+
+    adminBirthdayList.innerHTML = state.birthday.map(b => `
+    <div class="admin-item">
+      <div class="info">
+        <h4>${b.title}</h4>
+      </div>
+      <button class="btn-danger delete-birthday-btn" data-id="${b.id}">Sil</button>
+    </div>
+  `).join('');
+
     document.querySelectorAll('.delete-ann-btn').forEach(btn => {
         btn.onclick = async (e) => {
             const id = e.currentTarget.dataset.id;
@@ -357,6 +410,32 @@ function renderAdminLists() {
                 await loadDisplayData();
             } catch (err) {
                 alert('Medya silinemedi: ' + err.message);
+            }
+        };
+    });
+
+    document.querySelectorAll('.delete-ticker-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+            try {
+                await apiFetch(`/ticker/${id}`, { method: 'DELETE' });
+                await loadDisplayData();
+            } catch (err) {
+                alert('Mesaj silinemedi: ' + err.message);
+            }
+        };
+    });
+
+    document.querySelectorAll('.delete-birthday-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (!confirm('Bu girişi silmek istediğinize emin misiniz?')) return;
+            try {
+                await apiFetch(`/birthday/${id}`, { method: 'DELETE' });
+                await loadDisplayData();
+            } catch (err) {
+                alert('Doğum günü girişi silinemedi: ' + err.message);
             }
         };
     });
@@ -496,11 +575,56 @@ function setupEventListeners() {
         }
     };
 
-    // Global click for fullscreen
+    addTickerBtn.onclick = async () => {
+        const message = tickerMessageInput.value.trim();
+        if (!message) return;
+
+        try {
+            await apiFetch('/ticker', {
+                method: 'POST',
+                body: JSON.stringify({ message, is_active: true }),
+            });
+            tickerMessageInput.value = '';
+            await loadDisplayData();
+        } catch (err) {
+            alert('Mesaj eklenemedi: ' + err.message);
+        }
+    };
+
+    addBirthdayBtn.onclick = async () => {
+        const title = birthdayTitleInput.value.trim();
+        const content = birthdayContentInput.value.trim();
+        if (!title || !content) return;
+
+        try {
+            await apiFetch('/birthday', {
+                method: 'POST',
+                body: JSON.stringify({ title, content, is_active: true }),
+            });
+            birthdayTitleInput.value = '';
+            birthdayContentInput.value = '';
+            await loadDisplayData();
+        } catch (err) {
+            alert('Doğum günü girişi eklenemedi: ' + err.message);
+        }
+    };
+
+    // Global click for fullscreen and unmuted video play
     document.addEventListener('click', (e) => {
         // Ignore if logged in or clicking inside a modal or admin panel
         if (state.isLoggedIn) return;
         if (e.target.closest('.modal-overlay') || e.target.closest('.admin-panel-content') || e.target.closest('.auth-box')) return;
+
+        // Try to play any video in the media container (if unmuted autoplay was blocked)
+        const activeVideos = mediaContainer.querySelectorAll('video');
+        activeVideos.forEach(v => v.play().catch(err => console.warn("Video play failed:", err)));
+
+        // For YouTube frames, send play command
+        const activeIframes = mediaContainer.querySelectorAll('iframe');
+        activeIframes.forEach(f => {
+            f.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+            f.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+        });
 
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(() => { });

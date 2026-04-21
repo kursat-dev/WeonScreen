@@ -27,11 +27,15 @@ async function getWeek(req, res, next) {
         monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
         monday.setHours(0, 0, 0, 0);
 
-        const nextMonday = new Date(monday);
-        nextMonday.setDate(monday.getDate() + 7);
+        // Broaden search by 1 day on each side just in case of TZ shifts in the DB
+        const searchStart = new Date(monday);
+        searchStart.setDate(monday.getDate() - 1);
+        
+        const searchEnd = new Date(monday);
+        searchEnd.setDate(monday.getDate() + 8);
 
         const rows = await Menu.find({
-            date: { $gte: monday, $lt: nextMonday }
+            date: { $gte: searchStart, $lt: searchEnd }
         }).sort({ date: 1 });
         res.json(rows);
     } catch (err) {
